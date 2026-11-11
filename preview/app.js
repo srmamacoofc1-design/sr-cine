@@ -470,6 +470,39 @@ byId("hero-play").addEventListener("click", () => { if (featured.length) openFil
 byId("hero-info").addEventListener("click", () => { if (featured.length) openFilm(featured[featuredIndex]); });
 byId("film-play").addEventListener("click", startFilm);
 byId("player-reload").addEventListener("click", startFilm);
+let castLinkTimer;
+function openTvOptions() {
+  clearTimeout(castLinkTimer);
+  byId("open-wvc").hidden = true;
+  byId("open-wvc").removeAttribute("href");
+  byId("prepare-wvc").hidden = false;
+  byId("prepare-wvc").disabled = !activeFilm;
+  byId("cast-status").textContent = activeFilm ? `Selecionado: ${activeFilm.title}. Prepare o acesso e abra no Web Video Caster do celular.` : "Abra um filme ou episódio para prepará-lo para a TV.";
+  if (!byId("tv-dialog").open) byId("tv-dialog").showModal();
+}
+byId("film-tv").addEventListener("click", openTvOptions);
+byId("open-tv").addEventListener("click", openTvOptions);
+byId("prepare-wvc").addEventListener("click", async () => {
+  if (!activeFilm) return;
+  const button = byId("prepare-wvc");
+  button.disabled = true;
+  try {
+    const handoff = await membership.api("cast/start", { title: activeFilm.id, ...selectedEpisode });
+    const page = new URL(location.pathname, location.origin);
+    page.hash = new URLSearchParams({ handoff: handoff.token });
+    const launch = new URL("wvc-x-callback://open");
+    launch.search = new URLSearchParams({ url: page.href, title: activeFilm.title });
+    byId("open-wvc").href = launch.href;
+    byId("open-wvc").hidden = false;
+    button.hidden = true;
+    byId("cast-status").textContent = "Pronto! No celular, toque em Abrir Web Video Caster em até 2 minutos. No aplicativo, dê play e selecione a TV.";
+    castLinkTimer = setTimeout(() => { byId("open-wvc").hidden = true; byId("open-wvc").removeAttribute("href"); button.hidden = false; byId("cast-status").textContent = "O link expirou. Prepare um novo acesso para transmitir."; }, handoff.expiresIn * 1000);
+  } catch (error) {
+    byId("cast-status").textContent = error.message === "login_required" || error.message === "subscription_required" ? "Entre na sua conta e ative um plano para transmitir este filme." : "Não foi possível preparar a transmissão. Tente novamente.";
+  } finally { button.disabled = false; }
+});
+byId("open-wvc").addEventListener("click", () => { ++playVersion; stopPlayback(""); membership.release(); });
+byId("tv-dialog").addEventListener("close", () => { clearTimeout(castLinkTimer); byId("open-wvc").removeAttribute("href"); });
 byId("film-save").addEventListener("click", () => toggleSave(activeFilm));
 window.addEventListener("beforeinstallprompt", event => { event.preventDefault(); installPrompt = event; });
 window.addEventListener("appinstalled", () => { byId("install").hidden = true; });
@@ -482,11 +515,34 @@ byId("install").addEventListener("click", async () => {
 });
 
 membership.init();
+let resumeRequested = false;
+async function resumePending() {
+  if (!resumeRequested || !manifest) return;
+  resumeRequested = false;
+  try {
+    const target = JSON.parse(sessionStorage.getItem("srcine-watch") || "null");
+    if (!target?.title) return;
+    const kind = target.title.startsWith("series-") ? "tv" : "movie";
+    await loadIndex(kind);
+    const film = indexes.get(kind)?.find(item => item.id === target.title);
+    if (!film) return;
+    if (dialog.open) dialog.close();
+    openFilm(film);
+    if (film.kind === "tv" && Number.isInteger(target.season) && Number.isInteger(target.episode)) {
+      selectedEpisode = { season: target.season, episode: target.episode };
+      byId("season").value = String(target.season);
+      showEpisodes();
+    }
+    if (film.kind !== "tv" || selectedEpisode) startFilm();
+  } catch { byId("status").textContent = "Acesso confirmado. Escolha um título para assistir."; }
+}
+window.addEventListener("srcine:access-ready", () => { resumeRequested = true; resumePending(); });
 
 async function init() {
   manifest = await fetchJson("manifest.json");
   byId("catalog-total").textContent = `${formatNumber(manifest.counts.movie)} FILMES · ${formatNumber(manifest.counts.tv)} SÉRIES`;
   await selectView("movie");
+  await resumePending();
 }
 init().catch(() => {
   byId("hero").hidden = true;

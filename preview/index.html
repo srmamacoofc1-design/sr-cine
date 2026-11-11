@@ -9,9 +9,9 @@
   <meta name="robots" content="noindex">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./style.css?v=auth-2">
-  <script defer src="./membership.js?v=preview-auth-2"></script>
-  <script defer src="./app.js?v=auth-2"></script>
+  <link rel="stylesheet" href="./style.css?v=members-3">
+  <script defer src="./membership.js?v=preview-members-3"></script>
+  <script defer src="./app.js?v=members-3"></script>
 </head>
 <body>
   <header class="top">
@@ -26,6 +26,7 @@
       <button class="outline" id="open-plans">Planos</button>
       <button class="outline install" id="install" hidden>Instalar app</button>
       <button class="primary" id="open-account">Entrar</button>
+      <a class="outline button-link" id="open-admin" href="./admin" hidden>Painel admin</a>
     </div>
   </header>
   <aside class="preview-note" aria-label="Modo prévia">
@@ -91,9 +92,12 @@
     </div>
     <div id="plans" class="plans" aria-label="Planos do sr.cine"></div>
     <p id="plans-status" class="status" role="status"></p>
+    <p class="support-link">Precisa de ajuda? <a href="mailto:erickkaruan134@gmail.com">Fale com o suporte</a></p>
   </dialog>
   <footer>
     <span class="logo">sr<span>.</span>cine</span>
+    <p>Windows pelo navegador · Celular na web ou instalado · TV com transmissão compatível.</p>
+    <p>Suporte: <a href="mailto:erickkaruan134@gmail.com">erickkaruan134@gmail.com</a></p>
     <p>Catálogo e reprodução via <a href="https://embedmovies.org/" target="_blank" rel="noopener">EmbedMovies</a>. Imagens e metadados do TMDB e do <a href="https://www.stremio.com/" target="_blank" rel="noopener">Cinemeta</a>.</p>
   </footer>
   <dialog id="film-dialog" aria-labelledby="film-title">
@@ -109,6 +113,7 @@
     <div id="player-controls" class="player-controls" hidden>
       <button class="outline" id="player-reload">↻ Recarregar player</button>
     </div>
+    <div class="tv-under-player"><button class="outline" id="film-tv">▣ Espelhar na TV / Web Video Caster</button><small>Transmita pelo celular ou veja como espelhar a tela.</small></div>
     <p id="player-status" class="status" role="status"></p>
     <p id="film-description"></p>
     <div class="actions">
@@ -135,10 +140,17 @@
       <button class="outline" id="account-plans" hidden>Ver planos</button>
       <button class="outline" id="account-logout" hidden>Sair</button>
     </div>
+    <p class="support-link"><a href="mailto:erickkaruan134@gmail.com">Preciso de ajuda · Suporte</a></p>
     <dl id="account-stats" hidden></dl>
   </dialog>
   <dialog id="tv-dialog" aria-labelledby="tv-title">
     <div class="dialog-head"><h2 id="tv-title">Assistir na TV</h2><button class="outline close" data-close aria-label="Fechar">×</button></div>
+    <h3>No celular · Web Video Caster</h3>
+    <p>Instale o Web Video Caster no celular e conecte-o à TV na mesma rede Wi-Fi. Abra o filme no aplicativo, dê play e escolha o vídeo detectado para transmitir.</p>
+    <div class="actions"><button class="primary" id="prepare-wvc">Preparar filme para Web Video Caster</button><a id="open-wvc" class="primary button-link" hidden>Abrir Web Video Caster</a><a class="outline button-link" href="https://www.webvideocaster.com/" target="_blank" rel="noopener">Instalar / conhecer o aplicativo</a></div>
+    <p id="cast-status" role="status">Selecione um filme e entre com uma conta com acesso ativo.</p>
+    <p>A detecção e a reprodução dependem do player e da TV. Se o aplicativo não abrir, confira se está instalado. No computador, use a opção abaixo.</p>
+    <h3>Espelhar a tela</h3>
     <p>Conecte o computador e a TV com Chromecast ou Google Cast à mesma rede Wi-Fi.</p>
     <ol>
       <li>Abra o sr.cine no Chrome do Windows e dê play.</li>
@@ -146,7 +158,14 @@
       <li>Em <strong>Fontes</strong>, selecione <strong>Transmitir aba</strong>.</li>
     </ol>
     <p>No Android, o Google Home permite espelhar a tela em dispositivos compatíveis. No iPhone, o sr.cine abre no Safari.</p>
+    <p>No iPhone, também é possível usar Espelhamento da Tela na Central de Controle com uma TV compatível com AirPlay.</p>
     <p><a href="https://support.google.com/chromecast/answer/3228332?hl=pt-BR" target="_blank" rel="noopener">Passo a passo do Google</a></p>
+  </dialog>
+  <dialog id="payment-dialog" aria-labelledby="payment-title">
+    <div class="dialog-head"><h2 id="payment-title">Confirmando seu pagamento</h2><button class="outline close" data-close aria-label="Fechar">×</button></div>
+    <p id="payment-status" role="status">Aguardando a confirmação do Mercado Pago. Assim que o pagamento for aprovado, seu acesso será liberado.</p>
+    <div class="actions"><button class="primary" id="check-payment">Verificar agora</button><button class="outline" id="watch-paid" hidden>Continuar para assistir</button><button class="outline" id="other-plan">Ver outros planos</button></div>
+    <p class="support-link">Precisa de ajuda? <a href="mailto:erickkaruan134@gmail.com">erickkaruan134@gmail.com</a></p>
   </dialog>
   <dialog id="install-dialog" aria-labelledby="install-title">
     <div class="dialog-head"><h2 id="install-title">Instalar sr.cine</h2><button class="outline close" data-close aria-label="Fechar">×</button></div>
@@ -154,3 +173,4 @@
   </dialog>
 </body>
 </html>
+

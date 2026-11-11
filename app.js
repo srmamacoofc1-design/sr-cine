@@ -22,6 +22,9 @@ let installPrompt;
 let loadingTimeout;
 let searchTimer;
 let navigationVersion = 0;
+let selectedEpisode;
+let playVersion = 0;
+let episodeVersion = 0;
 
 function readState(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
@@ -39,7 +42,8 @@ const metadata = film => [
 ].filter(Boolean).join(" · ");
 
 async function fetchJson(path) {
-  const response = await fetch(`${DATA_ROOT}${path}?v=catalog-4`);
+  const base = path.startsWith("details/") ? "./data/" : DATA_ROOT;
+  const response = await fetch(`${base}${path}?v=preview-1`);
   if (!response.ok) throw new Error("Catálogo indisponível");
   return response.json();
 }
@@ -238,6 +242,22 @@ function showFeatured() {
   byId("hero-meta").textContent = metadata(film);
   byId("hero-description").textContent = film.genres.join(" · ");
   byId("hero-position").textContent = `${featuredIndex + 1} / ${featured.length}`;
+  byId("hero-choices").querySelectorAll("button").forEach((button, index) =>
+    button.setAttribute("aria-pressed", String(index === featuredIndex)));
+}
+
+function renderFeaturedChoices() {
+  byId("hero-choices").replaceChildren(...featured.map((film, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.setAttribute("aria-label", film.title);
+    const image = document.createElement("img");
+    image.alt = "";
+    if (film.backdrop || film.poster) image.src = film.backdrop || film.poster;
+    button.append(image);
+    button.addEventListener("click", () => { featuredIndex = index; showFeatured(); });
+    return button;
+  }));
 }
 
 async function selectView(nextView) {
@@ -261,8 +281,10 @@ async function selectView(nextView) {
     for (const category of categories) byId("category").append(new Option(category, category));
     if (getItems().some(film => !film.genres.length)) byId("category").append(new Option("Sem categoria informada", "unclassified"));
     if (categories.includes(oldCategory)) byId("category").value = oldCategory;
-    featured = view === "saved" ? [] : getItems().slice(0, 5);
+    const picks = view === "movie" ? [83533, 157336, 693134, 911430, 533535] : [1396, 66732, 1399, 1416, 136315];
+    featured = view === "saved" ? [] : picks.map(id => getItems().find(film => film.tmdbId === id)).filter(Boolean);
     featuredIndex = 0;
+    renderFeaturedChoices();
     showFeatured();
     render();
   } catch {
@@ -288,6 +310,7 @@ async function loadDescription(film) {
 
 function openFilm(film, autoplay = false) {
   activeFilm = film;
+  selectedEpisode = undefined;
   byId("film-kind").textContent = film.kind === "tv" ? "SR.CINE · SÉRIE" : "SR.CINE · FILME";
   byId("film-title").textContent = film.title;
   byId("film-meta").textContent = [metadata(film), film.genres.join(", ")].filter(Boolean).join(" · ");
@@ -304,17 +327,86 @@ function openFilm(film, autoplay = false) {
     if (dialog.open && activeFilm.id === film.id) byId("film-description").textContent = "Sinopse indisponível no momento.";
   });
   dialog.showModal();
-  if (autoplay) startFilm();
+  showSeasons(film);
+  if (autoplay && film.kind !== "tv") startFilm();
 }
 
-function startFilm() {
+function showSeasons(film) {
+  ++episodeVersion;
+  byId("episode-panel").hidden = film.kind !== "tv" || !film.seasons;
+  if (byId("episode-panel").hidden) return;
+  const seasonSelect = byId("season");
+  seasonSelect.replaceChildren(...Array.from({ length: Math.min(film.seasons, 100) }, (_, index) => new Option(`Temporada ${index + 1}`, index + 1)));
+  showEpisodes();
+}
+
+async function showEpisodes() {
+  const version = ++episodeVersion;
   const film = activeFilm;
-  if (!film || !/^https:\/\/myembed\.biz\/(?:filme|serie)\/(?:tt\d+|\d+)$/.test(film.video)) return;
+  const season = Number(byId("season").value);
+  const list = byId("episodes");
+  list.textContent = "Carregando episódios…";
+  try {
+    const data = await membership.api(`episodes/${film.id}?season=${season}`);
+    if (version !== episodeVersion || !dialog.open) return;
+    list.replaceChildren(...data.episodes.map(episode => {
+      const button = document.createElement("button");
+      button.className = "episode";
+      const title = document.createElement("strong");
+      title.textContent = `${episode.number}. ${episode.title}`;
+      const description = document.createElement("span");
+      description.textContent = [episode.duration && `${episode.duration} min`, episode.description].filter(Boolean).join(" · ");
+      button.append(title, description);
+      button.addEventListener("click", () => {
+        selectedEpisode = { season, episode: episode.number };
+        startFilm();
+      });
+      return button;
+    }));
+    if (!data.episodes.length) list.textContent = "Ainda não há episódios listados para esta temporada.";
+  } catch {
+    if (version === episodeVersion && dialog.open) list.textContent = "A lista de episódios está indisponível. Use Assistir para escolher no player.";
+  }
+}
+
+function stopPlayback(message) {
+  clearTimeout(loadingTimeout);
+  player.replaceChildren();
+  player.hidden = true;
+  byId("player-controls").hidden = true;
+  byId("film-play").hidden = false;
+  byId("player-status").textContent = message;
+}
+
+async function startFilm() {
+  const film = activeFilm;
+  if (!film) return;
+  const version = ++playVersion;
+  byId("film-play").disabled = true;
+  let source;
+  try {
+    source = await membership.play(film.id, selectedEpisode, () => {
+      if (version === playVersion) stopPlayback("A sessão de reprodução terminou. Verifique seu plano e tente novamente.");
+    });
+  } catch (error) {
+    if (version !== playVersion || !dialog.open) return;
+    if (error.message === "login_required" || error.message === "subscription_required") {
+      const message = error.message === "login_required" ? "Entre com Google para assistir." : "Escolha um plano ativo para assistir.";
+      stopPlayback(message);
+      membership.openAccount();
+    } else {
+      stopPlayback(error.message === "screen_limit" ? "Todas as telas do seu plano estão em uso. Feche outra reprodução e tente novamente." : "Não foi possível liberar a reprodução. Tente novamente.");
+    }
+    return;
+  } finally {
+    if (version === playVersion) byId("film-play").disabled = false;
+  }
+  if (version !== playVersion || !dialog.open) return;
   clearTimeout(loadingTimeout);
   player.hidden = false;
   byId("player-controls").hidden = false;
   byId("film-play").hidden = true;
-  byId("player-status").textContent = film.kind === "tv"
+  byId("player-status").textContent = film.kind === "tv" && !selectedEpisode
     ? "Carregando player… Selecione a temporada e o episódio no player."
     : "Carregando player…";
   const frame = document.createElement("iframe");
@@ -322,11 +414,11 @@ function startFilm() {
   frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
   frame.allowFullscreen = true;
   frame.referrerPolicy = "strict-origin-when-cross-origin";
-  frame.src = film.video;
+  frame.src = source;
   frame.addEventListener("load", () => {
     if (player.firstElementChild !== frame) return;
     clearTimeout(loadingTimeout);
-    byId("player-status").textContent = film.kind === "tv" ? "Selecione a temporada e o episódio no player." : "";
+    byId("player-status").textContent = film.kind === "tv" && !selectedEpisode ? "Selecione a temporada e o episódio no player." : "";
   }, { once: true });
   frame.addEventListener("error", () => {
     if (player.firstElementChild !== frame) return;
@@ -342,11 +434,15 @@ function startFilm() {
 
 document.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => button.closest("dialog").close()));
 dialog.addEventListener("close", () => {
-  clearTimeout(loadingTimeout);
-  player.replaceChildren();
-  player.hidden = true;
-  byId("player-controls").hidden = true;
-  byId("player-status").textContent = "";
+  ++playVersion;
+  ++episodeVersion;
+  byId("film-play").disabled = false;
+  stopPlayback("");
+  membership.release();
+});
+byId("season").addEventListener("change", () => {
+  selectedEpisode = undefined;
+  showEpisodes();
 });
 document.querySelectorAll("[data-view]").forEach(button => button.addEventListener("click", () => {
   if (manifest) selectView(button.dataset.view);
@@ -374,6 +470,39 @@ byId("hero-play").addEventListener("click", () => { if (featured.length) openFil
 byId("hero-info").addEventListener("click", () => { if (featured.length) openFilm(featured[featuredIndex]); });
 byId("film-play").addEventListener("click", startFilm);
 byId("player-reload").addEventListener("click", startFilm);
+let castLinkTimer;
+function openTvOptions() {
+  clearTimeout(castLinkTimer);
+  byId("open-wvc").hidden = true;
+  byId("open-wvc").removeAttribute("href");
+  byId("prepare-wvc").hidden = false;
+  byId("prepare-wvc").disabled = !activeFilm;
+  byId("cast-status").textContent = activeFilm ? `Selecionado: ${activeFilm.title}. Prepare o acesso e abra no Web Video Caster do celular.` : "Abra um filme ou episódio para prepará-lo para a TV.";
+  if (!byId("tv-dialog").open) byId("tv-dialog").showModal();
+}
+byId("film-tv").addEventListener("click", openTvOptions);
+byId("open-tv").addEventListener("click", openTvOptions);
+byId("prepare-wvc").addEventListener("click", async () => {
+  if (!activeFilm) return;
+  const button = byId("prepare-wvc");
+  button.disabled = true;
+  try {
+    const handoff = await membership.api("cast/start", { title: activeFilm.id, ...selectedEpisode });
+    const page = new URL(location.pathname, location.origin);
+    page.hash = new URLSearchParams({ handoff: handoff.token });
+    const launch = new URL("wvc-x-callback://open");
+    launch.search = new URLSearchParams({ url: page.href, title: activeFilm.title });
+    byId("open-wvc").href = launch.href;
+    byId("open-wvc").hidden = false;
+    button.hidden = true;
+    byId("cast-status").textContent = "Pronto! No celular, toque em Abrir Web Video Caster em até 2 minutos. No aplicativo, dê play e selecione a TV.";
+    castLinkTimer = setTimeout(() => { byId("open-wvc").hidden = true; byId("open-wvc").removeAttribute("href"); button.hidden = false; byId("cast-status").textContent = "O link expirou. Prepare um novo acesso para transmitir."; }, handoff.expiresIn * 1000);
+  } catch (error) {
+    byId("cast-status").textContent = error.message === "login_required" || error.message === "subscription_required" ? "Entre na sua conta e ative um plano para transmitir este filme." : "Não foi possível preparar a transmissão. Tente novamente.";
+  } finally { button.disabled = false; }
+});
+byId("open-wvc").addEventListener("click", () => { ++playVersion; stopPlayback(""); membership.release(); });
+byId("tv-dialog").addEventListener("close", () => { clearTimeout(castLinkTimer); byId("open-wvc").removeAttribute("href"); });
 byId("film-save").addEventListener("click", () => toggleSave(activeFilm));
 window.addEventListener("beforeinstallprompt", event => { event.preventDefault(); installPrompt = event; });
 window.addEventListener("appinstalled", () => { byId("install").hidden = true; });
@@ -384,12 +513,36 @@ byId("install").addEventListener("click", async () => {
   installPrompt = null;
   await prompt.prompt();
 });
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(() => {});
+
+membership.init();
+let resumeRequested = false;
+async function resumePending() {
+  if (!resumeRequested || !manifest) return;
+  resumeRequested = false;
+  try {
+    const target = JSON.parse(sessionStorage.getItem("srcine-watch") || "null");
+    if (!target?.title) return;
+    const kind = target.title.startsWith("series-") ? "tv" : "movie";
+    await loadIndex(kind);
+    const film = indexes.get(kind)?.find(item => item.id === target.title);
+    if (!film) return;
+    if (dialog.open) dialog.close();
+    openFilm(film);
+    if (film.kind === "tv" && Number.isInteger(target.season) && Number.isInteger(target.episode)) {
+      selectedEpisode = { season: target.season, episode: target.episode };
+      byId("season").value = String(target.season);
+      showEpisodes();
+    }
+    if (film.kind !== "tv" || selectedEpisode) startFilm();
+  } catch { byId("status").textContent = "Acesso confirmado. Escolha um título para assistir."; }
+}
+window.addEventListener("srcine:access-ready", () => { resumeRequested = true; resumePending(); });
 
 async function init() {
   manifest = await fetchJson("manifest.json");
   byId("catalog-total").textContent = `${formatNumber(manifest.counts.movie)} FILMES · ${formatNumber(manifest.counts.tv)} SÉRIES`;
   await selectView("movie");
+  await resumePending();
 }
 init().catch(() => {
   byId("hero").hidden = true;

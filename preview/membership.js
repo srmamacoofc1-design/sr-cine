@@ -10,6 +10,9 @@ window.membership = (() => {
   let queue = Promise.resolve();
   let authMode = "login";
   let plansRequest;
+  let paymentTimer;
+  let paymentVersion = 0;
+  let paymentBusy = false;
 
   let previewAccount = null;
   async function api(path, data) {
@@ -40,10 +43,12 @@ window.membership = (() => {
   async function refresh() {
     Object.assign(state, await api("me"));
     byId("open-account").textContent = state.account ? "Minha conta" : "Entrar";
+    byId("open-admin").hidden = !state.admin;
     return state;
   }
 
   async function openPlans() {
+    byId("payment-dialog").close();
     byId("account-dialog").close();
     document.getElementById("film-dialog").close();
     byId("plans-context").textContent = state.account
@@ -59,17 +64,26 @@ window.membership = (() => {
     await refresh();
     byId("email-login").reset();
     byId("account-dialog").close();
-    if (!state.plan) await openPlans();
-    else await openAccount();
+    if (state.admin && sessionStorage.getItem("srcine-admin-intent")) {
+      sessionStorage.removeItem("srcine-admin-intent");
+      location.assign("./admin");
+      return;
+    }
+    if (state.plan) return resume();
+    if (sessionStorage.getItem("srcine-order")) return openPayment();
+    await openPlans();
   }
 
   async function openAccount(message) {
     await refresh().catch(() => {});
-    if (state.account && !state.plan) return openPlans();
+    if (state.account && !state.plan && !state.admin && !state.blocked) {
+      if (sessionStorage.getItem("srcine-order")) return openPayment();
+      return openPlans();
+    }
     byId("plans-dialog").close();
     const dialog = byId("account-dialog");
     const expiration = state.plan ? new Date(state.plan.expires).toLocaleDateString("pt-BR") : "";
-    byId("account-message").textContent = message || (state.account
+    byId("account-message").textContent = message || (state.blocked ? "Sua conta está bloqueada. Entre em contato com o suporte." : state.account
       ? state.plan ? `${state.account.email} · Acesso até ${expiration} · ${state.plan.screens} tela(s)` : `${state.account.email} · Escolha um plano para assistir.`
       : "Entre ou crie sua conta. Em seguida, escolha seu plano.");
     byId("account-title").textContent = state.account ? "Minha conta" : authMode === "register" ? "Crie sua conta" : "Entre para assistir";
@@ -84,7 +98,7 @@ window.membership = (() => {
     byId("account-logout").hidden = !state.account;
     byId("account-stats").hidden = true;
     if (!dialog.open) dialog.showModal();
-    if (state.account) {
+    if (state.admin) {
       const stats = await api("admin/stats").catch(() => null);
       if (!stats || !dialog.open) return;
       const labels = { accounts: "Contas cadastradas", recentlyActive: "Contas ativas nos últimos 15 minutos", subscribers: "Assinantes ativos", playing: "Telas em reprodução" };
@@ -111,6 +125,7 @@ window.membership = (() => {
       const result = await api("checkout", { plan });
       const target = new URL(result.checkout);
       if (target.protocol !== "https:" || !/(^|\.)mercadopago\.com\.br$/.test(target.hostname)) throw new Error("invalid_checkout");
+      sessionStorage.setItem("srcine-order", result.order);
       location.assign(target.href);
     } catch (error) {
       message.textContent = error.message === "active_plan" ? "Sua conta já tem um plano ativo." : "Não foi possível iniciar o pagamento. Tente novamente.";
@@ -153,6 +168,7 @@ window.membership = (() => {
   function release() {}
 
   function play(title, episode, onStop) {
+    sessionStorage.setItem("srcine-watch", JSON.stringify({ title, ...episode }));
     const attempt = ++operation;
     clearInterval(heartbeat);
     return enqueue(async () => {
@@ -171,15 +187,83 @@ window.membership = (() => {
     });
   }
 
+  function resume() {
+    for (const id of ["plans-dialog", "account-dialog", "payment-dialog"]) byId(id).close();
+    window.dispatchEvent(new CustomEvent("srcine:access-ready"));
+  }
+
+  async function checkPayment(version = paymentVersion) {
+    if (paymentBusy) return;
+    paymentBusy = true;
+    clearTimeout(paymentTimer);
+    byId("check-payment").disabled = true;
+    try {
+      const order = sessionStorage.getItem("srcine-order");
+      const result = await api("payment/status", order ? { order } : {});
+      if (version !== paymentVersion || !byId("payment-dialog").open) return;
+      await refresh();
+      if (version !== paymentVersion || !byId("payment-dialog").open) return;
+      if (state.plan) {
+        sessionStorage.removeItem("srcine-order");
+        byId("payment-title").textContent = "Acesso liberado!";
+        byId("payment-status").textContent = `Seu plano está ativo até ${new Date(state.plan.expires).toLocaleString("pt-BR")}. Você já pode assistir.`;
+        byId("watch-paid").hidden = false;
+        byId("check-payment").hidden = true;
+      } else if (["rejected", "cancelled", "refunded", "charged_back"].includes(result.status)) {
+        byId("payment-status").textContent = "Este pagamento não liberou acesso. Confira a situação no Mercado Pago ou escolha outro plano.";
+      } else {
+        byId("payment-status").textContent = "Aguardando confirmação do Mercado Pago. Seu acesso será liberado após a aprovação. Você pode fechar esta tela e verificar novamente em Minha conta.";
+        paymentTimer = setTimeout(() => checkPayment(version), 5000);
+      }
+    } catch (error) {
+      if (version !== paymentVersion) return;
+      byId("payment-status").textContent = error.message === "order_not_found" ? "Não encontramos um pedido desta conta. Escolha seu plano para continuar." : "Não foi possível consultar agora. Use Verificar agora para tentar novamente. Seu acesso continua protegido.";
+    } finally { paymentBusy = false; byId("check-payment").disabled = false; }
+  }
+
+  async function openPayment() {
+    await refresh();
+    if (!state.account) return openAccount("Entre na conta usada no pagamento para consultar a confirmação.");
+    for (const id of ["plans-dialog", "account-dialog", "film-dialog"]) byId(id).close();
+    byId("payment-title").textContent = "Confirmando seu pagamento";
+    byId("watch-paid").hidden = true;
+    byId("check-payment").hidden = false;
+    if (!byId("payment-dialog").open) byId("payment-dialog").showModal();
+    await checkPayment(++paymentVersion);
+  }
+
   function init() {
     loadPlans().catch(() => { byId("plans-status").textContent = "Os planos estão indisponíveis no momento."; });
-    refresh().then(() => {
-      if (new URLSearchParams(location.search).get("login") === "success" && state.account && !state.plan) openPlans();
+    byId("google-login").addEventListener("click", async event => {
+      event.preventDefault();
+      previewAccount = { email: "visitante@exemplo.com", name: "Visitante" };
+      await afterLogin();
+    });
+    byId("preview-plans").addEventListener("click", openPlans);
+    const params = new URLSearchParams(location.search);
+    const hash = new URLSearchParams(location.hash.slice(1));
+    if (params.get("admin") === "login") sessionStorage.setItem("srcine-admin-intent", "1");
+    refresh().then(async () => {
+      if (hash.has("handoff")) {
+        try {
+          const target = await api("cast/redeem", { token: hash.get("handoff") });
+          history.replaceState(null, "", location.pathname);
+          sessionStorage.setItem("srcine-watch", JSON.stringify(target));
+          await refresh();
+          resume();
+        } catch { history.replaceState(null, "", location.pathname); openAccount("O link para a TV expirou. Prepare outro link no navegador de origem."); }
+      } else if (params.has("pagamento")) openPayment();
+      else if (params.get("login") === "success" && state.account) afterLogin();
+      else if (params.get("admin") === "login") openAccount("Entre com a conta Google do proprietário para abrir o painel.");
+      else if (sessionStorage.getItem("srcine-order") && state.account) openPayment();
     }).catch(() => {});
     byId("open-account").addEventListener("click", () => openAccount());
     byId("open-plans").addEventListener("click", openPlans);
-    byId("open-tv").addEventListener("click", () => byId("tv-dialog").showModal());
     byId("account-plans").addEventListener("click", openPlans);
+    byId("check-payment").addEventListener("click", () => checkPayment());
+    byId("watch-paid").addEventListener("click", resume);
+    byId("other-plan").addEventListener("click", () => { sessionStorage.removeItem("srcine-order"); openPlans(); });
+    byId("payment-dialog").addEventListener("close", () => { ++paymentVersion; clearTimeout(paymentTimer); });
     byId("auth-switch").addEventListener("click", () => {
       authMode = authMode === "login" ? "register" : "login";
       byId("account-title").textContent = authMode === "register" ? "Crie sua conta" : "Entre para assistir";
@@ -205,15 +289,8 @@ window.membership = (() => {
       try { await api("logout", {}); location.assign("./"); }
       catch { byId("account-message").textContent = "Não foi possível sair. Tente novamente."; }
     });
-    byId("google-login").addEventListener("click", async event => {
-      event.preventDefault();
-      previewAccount = { email: "visitante@exemplo.com", name: "Visitante" };
-      await afterLogin();
-    });
-    byId("preview-plans").addEventListener("click", openPlans);
-    const params = new URLSearchParams(location.search);
-    if (params.has("pagamento")) openAccount("Verificando o pagamento. O acesso é liberado após a confirmação.");
     if (params.get("login") === "failed") openAccount("Não foi possível entrar com Google. Tente novamente.");
+    if (params.get("login") === "blocked") openAccount("Sua conta está bloqueada. Fale com o suporte.");
     window.addEventListener("pagehide", () => { if (heartbeat) release(); });
   }
   return { api, init, openAccount, openPlans, afterLogin, play, release };
