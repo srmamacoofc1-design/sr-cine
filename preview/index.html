@@ -9,9 +9,9 @@
   <meta name="robots" content="noindex">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./style.css?v=members-1">
-  <script defer src="./membership.js?v=preview-1"></script>
-  <script defer src="./app.js?v=members-1"></script>
+  <link rel="stylesheet" href="./style.css?v=auth-2">
+  <script defer src="./membership.js?v=preview-auth-2"></script>
+  <script defer src="./app.js?v=auth-2"></script>
 </head>
 <body>
   <header class="top">
@@ -23,14 +23,15 @@
     </nav>
     <div class="account-actions">
       <button class="outline" id="open-tv">Ver na TV</button>
+      <button class="outline" id="open-plans">Planos</button>
       <button class="outline install" id="install" hidden>Instalar app</button>
       <button class="primary" id="open-account">Entrar</button>
     </div>
   </header>
   <aside class="preview-note" aria-label="Modo prévia">
     <strong>Prévia da área de membros</strong>
-    <span>Explore o design e as telas. Login, cobrança e reprodução estão desativados nesta prévia.</span>
-    <a href="#assinatura">Ver os planos</a>
+    <span>Login demonstrativo. Use os dados de exemplo para visualizar os planos.</span>
+    <button id="preview-plans" type="button">Ver os planos</button>
   </aside>
   <main>
     <section id="hero" class="hero" aria-label="Filme em destaque">
@@ -82,14 +83,15 @@
       <nav id="pagination-bottom" class="pagination" aria-label="Paginação no final"></nav>
     </section>
   </main>
-  <section id="assinatura" class="membership">
+  <dialog id="plans-dialog" class="membership" aria-labelledby="plans-title">
+    <div class="dialog-head"><p class="eyebrow">ESCOLHA SEU ACESSO</p><button class="outline close" data-close aria-label="Fechar planos">×</button></div>
     <div class="membership-intro">
-      <h2>Escolha seu plano</h2>
-      <p>Assista no Windows e no celular pelo navegador ou pelo app web instalado. Para assistir na TV, veja as opções de espelhamento.</p>
+      <h2 id="plans-title">Escolha seu plano e dê o play.</h2>
+      <p id="plans-context">Selecione o período e a quantidade de telas para sua conta.</p>
     </div>
     <div id="plans" class="plans" aria-label="Planos do sr.cine"></div>
     <p id="plans-status" class="status" role="status"></p>
-  </section>
+  </dialog>
   <footer>
     <span class="logo">sr<span>.</span>cine</span>
     <p>Catálogo e reprodução via <a href="https://embedmovies.org/" target="_blank" rel="noopener">EmbedMovies</a>. Imagens e metadados do TMDB e do <a href="https://www.stremio.com/" target="_blank" rel="noopener">Cinemeta</a>.</p>
@@ -116,11 +118,21 @@
     <p class="credits"><a id="source" target="_blank" rel="noopener"></a></p>
   </dialog>
   <dialog id="account-dialog" aria-labelledby="account-title">
-    <div class="dialog-head"><h2 id="account-title">Sua conta</h2><button class="outline close" data-close aria-label="Fechar">×</button></div>
+    <div class="dialog-head"><h2 id="account-title">Entre para assistir</h2><button class="outline close" data-close aria-label="Fechar">×</button></div>
     <p id="account-message" role="status"></p>
-    <div class="actions">
-      <a class="primary button-link" id="google-login" aria-disabled="true">Entrar com Google</a>
-      <button class="outline" id="account-plans">Ver planos</button>
+    <div id="login-options">
+      <a class="google-button button-link" id="google-login" href="#demonstracao"><span aria-hidden="true">G</span> Entrar com Google</a>
+      <div class="auth-divider"><span>ou entre com e-mail</span></div>
+      <p class="preview-auth-info">Demonstração local. Use os dados de exemplo. Os campos não são enviados a um servidor.</p><form id="email-login">
+        <label>E-mail<input id="login-email" name="email" type="email" autocomplete="username" placeholder="voce@exemplo.com" value="visitante@exemplo.com" maxlength="254" required></label>
+        <label>Senha<input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Sua senha" value="exemplo123" minlength="8" maxlength="128" required></label>
+        <p id="login-error" class="status" role="status"></p>
+        <button class="primary" id="login-submit" type="submit">Entrar e continuar</button>
+      </form>
+      <p class="auth-switch"><span id="auth-switch-label">Primeira vez aqui?</span> <button id="auth-switch" type="button">Criar minha conta</button></p>
+    </div>
+    <div class="actions" id="account-actions">
+      <button class="outline" id="account-plans" hidden>Ver planos</button>
       <button class="outline" id="account-logout" hidden>Sair</button>
     </div>
     <dl id="account-stats" hidden></dl>

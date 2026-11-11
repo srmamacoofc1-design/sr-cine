@@ -119,6 +119,23 @@ dialog::backdrop { background: #000b; }
 .plan button { margin-top: auto; width: 100%; }
 .button-link { display: inline-flex; align-items: center; text-decoration: none; }
 .button-link[aria-disabled="true"] { opacity: .55; }
+#account-dialog { width: min(440px, calc(100% - 24px)); padding: clamp(20px, 4vw, 36px); }
+#account-title { max-width: 290px; }
+#login-options .google-button { display: flex; justify-content: center; gap: 13px; background: #f8f8fa; color: #17171d; min-height: 47px; border-radius: 7px; font-weight: 700; }
+.google-button span { font-size: 1.25rem; color: #2665bb; font-family: Arial, sans-serif; }
+.auth-divider { display: flex; align-items: center; gap: 10px; margin: 22px 0; font-size: .8rem; color: var(--muted); }
+.auth-divider::before, .auth-divider::after { content: ""; height: 1px; background: var(--line); flex: 1; }
+#email-login { display: grid; gap: 15px; }
+#email-login label { display: grid; gap: 7px; font-size: .88rem; }
+#email-login input { padding: 13px; border: 1px solid #ffffff35; border-radius: 7px; width: 100%; color: #fff; background: #232229; }
+#email-login .status { margin: 0; }
+#login-submit { min-height: 47px; }
+.auth-switch { color: var(--muted); text-align: center; margin: 20px 0 0; font-size: .86rem; }
+#auth-switch { background: transparent; padding: 4px; border: 0; color: #fff; font-weight: 700; text-decoration: underline; }
+#account-actions { margin-top: 15px; }
+#plans-dialog { width: min(1100px, calc(100% - 24px)); padding: clamp(20px, 4vw, 42px); }
+#plans-dialog .dialog-head { margin-bottom: 22px; }
+#plans-dialog .membership-intro { max-width: 720px; }
 .hero-choices { position: absolute; display: flex; gap: 8px; bottom: 90px; right: var(--edge); }
 .hero-choices button { border: 2px solid #ffffff32; border-radius: 6px; padding: 0; overflow: hidden; width: clamp(52px, 6vw, 104px); aspect-ratio: 16/9; background: #17171d; }
 .hero-choices button[aria-pressed="true"] { border-color: #ff6270; }
@@ -172,5 +189,6 @@ dialog::backdrop { background: #000b; }
 
 .preview-note { display: flex; align-items: center; flex-wrap: wrap; gap: 7px 14px; padding: 10px var(--edge); background: #261219; color: #f4dce1; font-size: .82rem; }
 .preview-note strong { color: #fff; }
-.preview-note a { margin-left: auto; color: #fff; font-weight: 700; }
-@media (max-width: 700px) { .preview-note a { margin-left: 0; } }
+.preview-note button { margin-left: auto; color: #fff; background: none; border: 0; font-weight: 700; text-decoration: underline; }
+.preview-auth-info { color: #d4abb4; font-size: .79rem; line-height: 1.4; }
+@media (max-width: 700px) { .preview-note button { margin-left: 0; } }

@@ -8,15 +8,24 @@ window.membership = (() => {
   let heartbeat;
   let operation = 0;
   let queue = Promise.resolve();
+  let authMode = "login";
+  let plansRequest;
 
-  async function api(path) {
+  let previewAccount = null;
+  async function api(path, data) {
     if (path === "plans") return [
   { id: "mensal", name: "Mensal", months: 1, cents: 1990, screens: 1 },
   { id: "bimestral", name: "Bimestral", months: 2, cents: 3490, screens: 2 },
   { id: "trimestral", name: "Trimestral", months: 3, cents: 4690, screens: 4 },
   { id: "anual", name: "Anual", months: 12, cents: 9990, screens: 10 }
 ];
-    if (path === "me") return { account: null, plan: null, google: false, billing: false };
+    if (path === "me") return { account: previewAccount, plan: null, google: true, billing: false };
+    if (path === "email/login" || path === "email/register") {
+      previewAccount = { email: "visitante@exemplo.com", name: "Visitante" };
+      return { ok: true };
+    }
+    if (path === "play") throw new Error(previewAccount ? "subscription_required" : "login_required");
+    if (path === "logout") { previewAccount = null; return { ok: true }; }
     if (path.startsWith("episodes/")) {
       const [id, query] = path.slice("episodes/".length).split("?");
       if (id !== "series-1396") throw new Error("episode_preview_unavailable");
@@ -34,13 +43,39 @@ window.membership = (() => {
     return state;
   }
 
+  async function openPlans() {
+    byId("account-dialog").close();
+    document.getElementById("film-dialog").close();
+    byId("plans-context").textContent = state.account
+      ? `${state.account.email} · Escolha o plano para liberar seu acesso.`
+      : "Escolha seu plano. Você poderá entrar ou criar uma conta para continuar.";
+    const dialog = byId("plans-dialog");
+    if (!dialog.open) dialog.showModal();
+    try { await loadPlans(); }
+    catch { byId("plans-status").textContent = "Os planos estão indisponíveis no momento. Tente novamente."; }
+  }
+
+  async function afterLogin() {
+    await refresh();
+    byId("email-login").reset();
+    byId("account-dialog").close();
+    if (!state.plan) await openPlans();
+    else await openAccount();
+  }
+
   async function openAccount(message) {
     await refresh().catch(() => {});
+    if (state.account && !state.plan) return openPlans();
+    byId("plans-dialog").close();
     const dialog = byId("account-dialog");
     const expiration = state.plan ? new Date(state.plan.expires).toLocaleDateString("pt-BR") : "";
     byId("account-message").textContent = message || (state.account
       ? state.plan ? `${state.account.email} · Acesso até ${expiration} · ${state.plan.screens} tela(s)` : `${state.account.email} · Escolha um plano para assistir.`
-      : state.google ? "Entre com sua conta Google para assistir." : "Esta é uma prévia. O login com Google, os pagamentos e a reprodução serão ativados no ambiente de membros.");
+      : "Entre ou crie sua conta. Em seguida, escolha seu plano.");
+    byId("account-title").textContent = state.account ? "Minha conta" : authMode === "register" ? "Crie sua conta" : "Entre para assistir";
+    byId("login-options").hidden = Boolean(state.account);
+    byId("account-plans").hidden = !state.account;
+    byId("login-error").textContent = "";
     const login = byId("google-login");
     login.hidden = Boolean(state.account);
     login.setAttribute("aria-disabled", String(!state.google));
@@ -69,8 +104,10 @@ window.membership = (() => {
     const message = byId("plans-status");
     try {
       await refresh();
-      if (!state.account) return await openAccount("Você está na prévia. Nenhum pagamento será iniciado.");
-      if (!state.billing) { message.textContent = "A cobrança ainda está em configuração."; return; }
+      if (!state.account) {
+        return await openAccount("Entre com Google ou e-mail para continuar com o plano escolhido.");
+      }
+      if (!state.billing) { message.textContent = "Este é um plano demonstrativo. O pagamento real ainda aguarda configuração."; return; }
       const result = await api("checkout", { plan });
       const target = new URL(result.checkout);
       if (target.protocol !== "https:" || !/(^|\.)mercadopago\.com\.br$/.test(target.hostname)) throw new Error("invalid_checkout");
@@ -81,6 +118,12 @@ window.membership = (() => {
   }
 
   async function loadPlans() {
+    if (plansRequest) return plansRequest;
+    plansRequest = renderPlans().catch(error => { plansRequest = undefined; throw error; });
+    return plansRequest;
+  }
+
+  async function renderPlans() {
     const plans = await api("plans");
     byId("plans").replaceChildren(...plans.map(plan => {
       const card = document.createElement("article");
@@ -130,22 +173,48 @@ window.membership = (() => {
 
   function init() {
     loadPlans().catch(() => { byId("plans-status").textContent = "Os planos estão indisponíveis no momento."; });
-    refresh().catch(() => {});
+    refresh().then(() => {
+      if (new URLSearchParams(location.search).get("login") === "success" && state.account && !state.plan) openPlans();
+    }).catch(() => {});
     byId("open-account").addEventListener("click", () => openAccount());
+    byId("open-plans").addEventListener("click", openPlans);
     byId("open-tv").addEventListener("click", () => byId("tv-dialog").showModal());
-    byId("account-plans").addEventListener("click", () => {
-      byId("account-dialog").close();
-      document.getElementById("film-dialog").close();
-      byId("assinatura").scrollIntoView({ behavior: "smooth" });
+    byId("account-plans").addEventListener("click", openPlans);
+    byId("auth-switch").addEventListener("click", () => {
+      authMode = authMode === "login" ? "register" : "login";
+      byId("account-title").textContent = authMode === "register" ? "Crie sua conta" : "Entre para assistir";
+      byId("login-submit").textContent = authMode === "register" ? "Criar conta e ver planos" : "Entrar e continuar";
+      byId("auth-switch-label").textContent = authMode === "register" ? "Já tem uma conta?" : "Primeira vez aqui?";
+      byId("auth-switch").textContent = authMode === "register" ? "Entrar" : "Criar minha conta";
+      byId("login-password").autocomplete = authMode === "register" ? "new-password" : "current-password";
+      byId("login-error").textContent = "";
+    });
+    byId("email-login").addEventListener("submit", async event => {
+      event.preventDefault();
+      const button = byId("login-submit");
+      button.disabled = true;
+      try {
+        await api(`email/${authMode}`, { email: byId("login-email").value.trim(), password: byId("login-password").value });
+        await afterLogin();
+      } catch (error) {
+        const messages = { invalid_credentials: "E-mail ou senha incorretos.", invalid_registration: "Use um e-mail válido e uma senha entre 8 e 128 caracteres.", registration_unavailable: "Não foi possível criar a conta. Tente entrar ou use o Google.", too_many_attempts: "Muitas tentativas. Aguarde alguns minutos e tente novamente." };
+        byId("login-error").textContent = messages[error.message] || "Não foi possível entrar. Tente novamente.";
+      } finally { button.disabled = false; }
     });
     byId("account-logout").addEventListener("click", async () => {
       try { await api("logout", {}); location.assign("./"); }
       catch { byId("account-message").textContent = "Não foi possível sair. Tente novamente."; }
     });
+    byId("google-login").addEventListener("click", async event => {
+      event.preventDefault();
+      previewAccount = { email: "visitante@exemplo.com", name: "Visitante" };
+      await afterLogin();
+    });
+    byId("preview-plans").addEventListener("click", openPlans);
     const params = new URLSearchParams(location.search);
     if (params.has("pagamento")) openAccount("Verificando o pagamento. O acesso é liberado após a confirmação.");
     if (params.get("login") === "failed") openAccount("Não foi possível entrar com Google. Tente novamente.");
     window.addEventListener("pagehide", () => { if (heartbeat) release(); });
   }
-  return { api, init, openAccount, play, release };
+  return { api, init, openAccount, openPlans, afterLogin, play, release };
 })();
