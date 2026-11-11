@@ -13,6 +13,7 @@ window.membership = (() => {
   let paymentTimer;
   let paymentVersion = 0;
   let paymentBusy = false;
+  let paymentOrder;
 
   let previewAccount = null;
   async function api(path, data) {
@@ -48,6 +49,7 @@ window.membership = (() => {
   }
 
   async function openPlans() {
+    sessionStorage.removeItem("srcine-admin-intent");
     byId("payment-dialog").close();
     byId("account-dialog").close();
     document.getElementById("film-dialog").close();
@@ -69,15 +71,19 @@ window.membership = (() => {
       location.assign("./admin");
       return;
     }
+    if (sessionStorage.getItem("srcine-admin-intent") && !state.admin) {
+      return openAccount("Para abrir o painel, confirme sua identidade pelo botão Entrar com Google.");
+    }
     if (state.plan) return resume();
-    if (sessionStorage.getItem("srcine-order")) return openPayment();
+    if (state.pendingOrder || sessionStorage.getItem("srcine-order")) return openPayment();
     await openPlans();
   }
 
   async function openAccount(message) {
     await refresh().catch(() => {});
-    if (state.account && !state.plan && !state.admin && !state.blocked) {
-      if (sessionStorage.getItem("srcine-order")) return openPayment();
+    const adminLogin = Boolean(sessionStorage.getItem("srcine-admin-intent") && !state.admin);
+    if (state.account && !state.plan && !state.admin && !state.blocked && !adminLogin) {
+      if (state.pendingOrder || sessionStorage.getItem("srcine-order")) return openPayment();
       return openPlans();
     }
     byId("plans-dialog").close();
@@ -86,12 +92,15 @@ window.membership = (() => {
     byId("account-message").textContent = message || (state.blocked ? "Sua conta está bloqueada. Entre em contato com o suporte." : state.account
       ? state.plan ? `${state.account.email} · Acesso até ${expiration} · ${state.plan.screens} tela(s)` : `${state.account.email} · Escolha um plano para assistir.`
       : "Entre ou crie sua conta. Em seguida, escolha seu plano.");
-    byId("account-title").textContent = state.account ? "Minha conta" : authMode === "register" ? "Crie sua conta" : "Entre para assistir";
-    byId("login-options").hidden = Boolean(state.account);
+    byId("account-title").textContent = adminLogin ? "Entrar no painel" : state.account ? "Minha conta" : authMode === "register" ? "Crie sua conta" : "Entre para assistir";
+    byId("login-options").hidden = Boolean(state.account) && !adminLogin;
+    byId("email-login").hidden = adminLogin;
+    document.querySelector(".auth-divider").hidden = adminLogin;
+    document.querySelector(".auth-switch").hidden = adminLogin;
     byId("account-plans").hidden = !state.account;
     byId("login-error").textContent = "";
     const login = byId("google-login");
-    login.hidden = Boolean(state.account);
+    login.hidden = Boolean(state.account) && !adminLogin;
     login.setAttribute("aria-disabled", String(!state.google));
     if (state.google) login.href = "./api/google/start";
     else login.removeAttribute("href");
@@ -123,9 +132,10 @@ window.membership = (() => {
       }
       if (!state.billing) { message.textContent = "Este é um plano demonstrativo. O pagamento real ainda aguarda configuração."; return; }
       const result = await api("checkout", { plan });
+      sessionStorage.setItem("srcine-order", result.order);
+      if (result.mode === "manual") return await openPayment();
       const target = new URL(result.checkout);
       if (target.protocol !== "https:" || !/(^|\.)mercadopago\.com\.br$/.test(target.hostname)) throw new Error("invalid_checkout");
-      sessionStorage.setItem("srcine-order", result.order);
       location.assign(target.href);
     } catch (error) {
       message.textContent = error.message === "active_plan" ? "Sua conta já tem um plano ativo." : "Não foi possível iniciar o pagamento. Tente novamente.";
@@ -198,22 +208,41 @@ window.membership = (() => {
     clearTimeout(paymentTimer);
     byId("check-payment").disabled = true;
     try {
-      const order = sessionStorage.getItem("srcine-order");
+      const order = sessionStorage.getItem("srcine-order") || state.pendingOrder;
       const result = await api("payment/status", order ? { order } : {});
       if (version !== paymentVersion || !byId("payment-dialog").open) return;
       await refresh();
       if (version !== paymentVersion || !byId("payment-dialog").open) return;
-      if (state.plan) {
+      paymentOrder = result.order;
+      byId("manual-payment").hidden = true;
+      if (result.mode === "manual" && result.status === "created" && !state.plan) {
+        const url = new URL(result.checkout);
+        if (url.origin !== "https://mpago.la") throw new Error("invalid_checkout");
+        const plan = result.purchase;
+        const period = plan.months === 1 ? "1 mês" : `${plan.months} meses`;
+        byId("payment-title").textContent = "Pague pelo Mercado Pago";
+        byId("payment-plan").textContent = `${plan.name} · ${currency.format(plan.cents / 100)} · ${period} · ${plan.screens} tela(s)`;
+        byId("payment-status").textContent = "Após pagar, volte aqui e envie o número da operação. A equipe confere o pagamento e libera o acesso nesta conta.";
+        byId("pay-fixed-link").href = url.href;
+        byId("manual-payment").hidden = false;
+        byId("check-payment").hidden = true;
+      } else if (state.plan) {
         sessionStorage.removeItem("srcine-order");
         byId("payment-title").textContent = "Acesso liberado!";
         byId("payment-status").textContent = `Seu plano está ativo até ${new Date(state.plan.expires).toLocaleString("pt-BR")}. Você já pode assistir.`;
         byId("watch-paid").hidden = false;
         byId("check-payment").hidden = true;
+      } else if (result.mode === "manual" && result.status === "approved") {
+        byId("payment-title").textContent = "Pagamento aprovado";
+        byId("payment-status").textContent = "A aprovação foi registrada. Consulte o suporte se tiver dúvidas sobre a disponibilidade do seu acesso.";
       } else if (["rejected", "cancelled", "refunded", "charged_back"].includes(result.status)) {
         byId("payment-status").textContent = "Este pagamento não liberou acesso. Confira a situação no Mercado Pago ou escolha outro plano.";
       } else {
-        byId("payment-status").textContent = "Aguardando confirmação do Mercado Pago. Seu acesso será liberado após a aprovação. Você pode fechar esta tela e verificar novamente em Minha conta.";
-        paymentTimer = setTimeout(() => checkPayment(version), 5000);
+        byId("payment-title").textContent = result.mode === "manual" ? "Pagamento em conferência" : "Confirmando seu pagamento";
+        byId("payment-status").textContent = result.mode === "manual"
+          ? "Recebemos o número da operação. Você pode acompanhar a aprovação em Minha conta."
+          : "Aguardando confirmação do Mercado Pago. Seu acesso será liberado após a aprovação. Você pode fechar esta tela e verificar novamente em Minha conta.";
+        paymentTimer = setTimeout(() => checkPayment(version), result.mode === "manual" ? 30000 : 5000);
       }
     } catch (error) {
       if (version !== paymentVersion) return;
@@ -226,6 +255,9 @@ window.membership = (() => {
     if (!state.account) return openAccount("Entre na conta usada no pagamento para consultar a confirmação.");
     for (const id of ["plans-dialog", "account-dialog", "film-dialog"]) byId(id).close();
     byId("payment-title").textContent = "Confirmando seu pagamento";
+    byId("manual-payment").hidden = true;
+    byId("payment-report-form").reset();
+    byId("payment-report-status").textContent = "";
     byId("watch-paid").hidden = true;
     byId("check-payment").hidden = false;
     if (!byId("payment-dialog").open) byId("payment-dialog").showModal();
@@ -244,7 +276,20 @@ window.membership = (() => {
     const hash = new URLSearchParams(location.hash.slice(1));
     if (params.get("admin") === "login") sessionStorage.setItem("srcine-admin-intent", "1");
     refresh().then(async () => {
-      if (hash.has("handoff")) {
+      if (params.get("identity_login") === "google") {
+        try { await window.srcineIdentity.start(); }
+        catch (error) {
+          if (error.message !== "Redirecting to OAuth provider") openAccount("Não foi possível iniciar o Google. Tente novamente.");
+        }
+      } else if (hash.has("access_token")) {
+        try {
+          await window.srcineIdentity.complete();
+          await afterLogin();
+        } catch {
+          history.replaceState(null, "", location.pathname);
+          await openAccount("Não foi possível concluir o login Google. Tente entrar novamente.");
+        }
+      } else if (hash.has("handoff")) {
         try {
           const target = await api("cast/redeem", { token: hash.get("handoff") });
           history.replaceState(null, "", location.pathname);
@@ -255,12 +300,28 @@ window.membership = (() => {
       } else if (params.has("pagamento")) openPayment();
       else if (params.get("login") === "success" && state.account) afterLogin();
       else if (params.get("admin") === "login") openAccount("Entre com a conta Google do proprietário para abrir o painel.");
-      else if (sessionStorage.getItem("srcine-order") && state.account) openPayment();
+      else if ((state.pendingOrder || sessionStorage.getItem("srcine-order")) && state.account && !state.plan) openPayment();
     }).catch(() => {});
     byId("open-account").addEventListener("click", () => openAccount());
     byId("open-plans").addEventListener("click", openPlans);
     byId("account-plans").addEventListener("click", openPlans);
     byId("check-payment").addEventListener("click", () => checkPayment());
+    byId("payment-report-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!paymentOrder) return;
+      const button = byId("payment-report-form").querySelector("button");
+      button.disabled = true;
+      try {
+        await api("payment/report", { order: paymentOrder, paymentId: byId("payment-operation").value.trim() });
+        byId("payment-report-form").reset();
+        byId("check-payment").hidden = false;
+        await checkPayment();
+      } catch {
+        byId("payment-report-status").textContent = "Não foi possível enviar. Confira o número da operação e tente novamente.";
+      } finally {
+        button.disabled = false;
+      }
+    });
     byId("watch-paid").addEventListener("click", resume);
     byId("other-plan").addEventListener("click", () => { sessionStorage.removeItem("srcine-order"); openPlans(); });
     byId("payment-dialog").addEventListener("close", () => { ++paymentVersion; clearTimeout(paymentTimer); });
@@ -286,7 +347,12 @@ window.membership = (() => {
       } finally { button.disabled = false; }
     });
     byId("account-logout").addEventListener("click", async () => {
-      try { await api("logout", {}); location.assign("./"); }
+      try {
+        await api("logout", {});
+        await window.srcineIdentity?.logout().catch(() => {});
+        sessionStorage.removeItem("srcine-order");
+        location.assign("./");
+      }
       catch { byId("account-message").textContent = "Não foi possível sair. Tente novamente."; }
     });
     if (params.get("login") === "failed") openAccount("Não foi possível entrar com Google. Tente novamente.");

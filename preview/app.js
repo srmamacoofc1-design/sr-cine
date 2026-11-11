@@ -506,7 +506,9 @@ byId("tv-dialog").addEventListener("close", () => { clearTimeout(castLinkTimer);
 byId("film-save").addEventListener("click", () => toggleSave(activeFilm));
 window.addEventListener("beforeinstallprompt", event => { event.preventDefault(); installPrompt = event; });
 window.addEventListener("appinstalled", () => { byId("install").hidden = true; });
-if (matchMedia("(display-mode: standalone)").matches) byId("install").hidden = true;
+const mobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+if (!mobileDevice || matchMedia("(display-mode: standalone)").matches) byId("install").hidden = true;
 byId("install").addEventListener("click", async () => {
   if (!installPrompt) { byId("install-dialog").showModal(); return; }
   const prompt = installPrompt;

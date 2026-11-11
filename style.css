@@ -190,6 +190,11 @@ dialog::backdrop { background: #000b; }
 .tv-under-player small,.support-link { color:var(--muted);font-size:.85rem;line-height:1.6; }
 #payment-dialog { max-width:640px; }
 #cast-status { line-height:1.6;color:#e3c5cc; }
+#payment-report-form { display: grid; gap: 10px; margin: 20px 0; }
+#payment-report-form input { padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
+#payment-report-form small { color: var(--muted); }
+#payment-report-status:empty { display: none; }
+.setup-note { padding: 14px var(--edge); background: #302017; color: #f5d7bd; line-height: 1.5; }
 
 .preview-note { display: flex; align-items: center; flex-wrap: wrap; gap: 7px 14px; padding: 10px var(--edge); background: #261219; color: #f4dce1; font-size: .82rem; }
 .preview-note strong { color: #fff; }
