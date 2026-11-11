@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111012">
+  <meta name="description" content="Encontre filmes e séries de todas as épocas. Explore o catálogo por gênero e descubra seu próximo play.">
+  <title>sr.cine — Prévia da área de membros</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="./icon-192.png">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="stylesheet" href="./style.css?v=members-1">
+  <script defer src="./membership.js?v=preview-1"></script>
+  <script defer src="./app.js?v=members-1"></script>
+</head>
+<body>
+  <header class="top">
+    <a class="logo" href="./" aria-label="sr.cine, início">sr<span>.</span>cine</a>
+    <nav aria-label="Menu">
+      <button data-view="movie" aria-pressed="true">Filmes</button>
+      <button data-view="tv" aria-pressed="false">Séries</button>
+      <button data-view="saved" aria-pressed="false">Minha lista</button>
+    </nav>
+    <div class="account-actions">
+      <button class="outline" id="open-tv">Ver na TV</button>
+      <button class="outline install" id="install" hidden>Instalar app</button>
+      <button class="primary" id="open-account">Entrar</button>
+    </div>
+  </header>
+  <aside class="preview-note" aria-label="Modo prévia">
+    <strong>Prévia da área de membros</strong>
+    <span>Explore o design e as telas. Login, cobrança e reprodução estão desativados nesta prévia.</span>
+    <a href="#assinatura">Ver os planos</a>
+  </aside>
+  <main>
+    <section id="hero" class="hero" aria-label="Filme em destaque">
+      <img class="hero-art" id="hero-art" alt="">
+      <div class="hero-copy">
+        <p class="eyebrow"><span></span> EM DESTAQUE</p>
+        <h1 id="hero-title">Seu próximo filme.</h1>
+        <p class="hero-meta" id="hero-meta"></p>
+        <p class="hero-description" id="hero-description"></p>
+        <div class="actions">
+          <button class="primary" id="hero-play">▶ &nbsp; Assistir agora</button>
+          <button class="outline" id="hero-info">Detalhes</button>
+        </div>
+      </div>
+      <div class="hero-pagination" aria-label="Trocar filme em destaque">
+        <button id="hero-previous" class="outline" aria-label="Destaque anterior">←</button>
+        <span id="hero-position"></span>
+        <button id="hero-next" class="outline" aria-label="Próximo destaque">→</button>
+      </div>
+      <div id="hero-choices" class="hero-choices" aria-label="Destaques do catálogo"></div>
+    </section>
+    <section id="library" class="library">
+      <div class="section-head">
+        <div><p class="eyebrow" id="catalog-total">ESCOLHA SEU PRÓXIMO PLAY</p><h2 id="library-title">Filmes</h2></div>
+        <label class="search"><span aria-hidden="true">⌕</span><input id="query" type="search" placeholder="Buscar por nome em português ou original" aria-label="Buscar no catálogo" maxlength="100"></label>
+      </div>
+      <div class="catalog-filters">
+        <label>Categoria<select id="category"><option value="">Todas as categorias</option></select></label>
+        <label>Época<select id="period">
+          <option value="">Todas as épocas</option>
+          <option value="2020">2020 em diante</option>
+          <option value="2010">2010 a 2019</option>
+          <option value="2000">2000 a 2009</option>
+          <option value="1990">1990 a 1999</option>
+          <option value="1980">1980 a 1989</option>
+          <option value="classic">Antes de 1980</option>
+        </select></label>
+        <label>Ordenar<select id="sort">
+          <option value="popular">Mais populares</option>
+          <option value="newest">Mais recentes</option>
+          <option value="oldest">Mais antigos</option>
+          <option value="rating">Melhor avaliação</option>
+          <option value="title">Título A–Z</option>
+        </select></label>
+      </div>
+      <p id="status" class="status" role="status">Carregando catálogo…</p>
+      <nav id="pagination-top" class="pagination" aria-label="Paginação no início"></nav>
+      <div id="cards" class="cards" aria-live="polite"></div>
+      <nav id="pagination-bottom" class="pagination" aria-label="Paginação no final"></nav>
+    </section>
+  </main>
+  <section id="assinatura" class="membership">
+    <div class="membership-intro">
+      <h2>Escolha seu plano</h2>
+      <p>Assista no Windows e no celular pelo navegador ou pelo app web instalado. Para assistir na TV, veja as opções de espelhamento.</p>
+    </div>
+    <div id="plans" class="plans" aria-label="Planos do sr.cine"></div>
+    <p id="plans-status" class="status" role="status"></p>
+  </section>
+  <footer>
+    <span class="logo">sr<span>.</span>cine</span>
+    <p>Catálogo e reprodução via <a href="https://embedmovies.org/" target="_blank" rel="noopener">EmbedMovies</a>. Imagens e metadados do TMDB e do <a href="https://www.stremio.com/" target="_blank" rel="noopener">Cinemeta</a>.</p>
+  </footer>
+  <dialog id="film-dialog" aria-labelledby="film-title">
+    <div class="dialog-head"><p class="eyebrow" id="film-kind"></p><button class="outline close" data-close aria-label="Fechar">×</button></div>
+    <h2 id="film-title"></h2>
+    <p id="film-meta" class="hero-meta"></p>
+    <section id="episode-panel" hidden>
+      <h3>Temporadas e episódios</h3>
+      <label>Temporada <select id="season"></select></label>
+      <div id="episodes"></div>
+    </section>
+    <div id="player" hidden></div>
+    <div id="player-controls" class="player-controls" hidden>
+      <button class="outline" id="player-reload">↻ Recarregar player</button>
+    </div>
+    <p id="player-status" class="status" role="status"></p>
+    <p id="film-description"></p>
+    <div class="actions">
+      <button class="primary" id="film-play">▶ &nbsp; Assistir</button>
+      <button class="outline" id="film-save">＋ Minha lista</button>
+    </div>
+    <p class="credits"><a id="source" target="_blank" rel="noopener"></a></p>
+  </dialog>
+  <dialog id="account-dialog" aria-labelledby="account-title">
+    <div class="dialog-head"><h2 id="account-title">Sua conta</h2><button class="outline close" data-close aria-label="Fechar">×</button></div>
+    <p id="account-message" role="status"></p>
+    <div class="actions">
+      <a class="primary button-link" id="google-login" aria-disabled="true">Entrar com Google</a>
+      <button class="outline" id="account-plans">Ver planos</button>
+      <button class="outline" id="account-logout" hidden>Sair</button>
+    </div>
+    <dl id="account-stats" hidden></dl>
+  </dialog>
+  <dialog id="tv-dialog" aria-labelledby="tv-title">
+    <div class="dialog-head"><h2 id="tv-title">Assistir na TV</h2><button class="outline close" data-close aria-label="Fechar">×</button></div>
+    <p>Conecte o computador e a TV com Chromecast ou Google Cast à mesma rede Wi-Fi.</p>
+    <ol>
+      <li>Abra o sr.cine no Chrome do Windows e dê play.</li>
+      <li>No menu do Chrome, escolha <strong>Transmitir</strong> e selecione a TV.</li>
+      <li>Em <strong>Fontes</strong>, selecione <strong>Transmitir aba</strong>.</li>
+    </ol>
+    <p>No Android, o Google Home permite espelhar a tela em dispositivos compatíveis. No iPhone, o sr.cine abre no Safari.</p>
+    <p><a href="https://support.google.com/chromecast/answer/3228332?hl=pt-BR" target="_blank" rel="noopener">Passo a passo do Google</a></p>
+  </dialog>
+  <dialog id="install-dialog" aria-labelledby="install-title">
+    <div class="dialog-head"><h2 id="install-title">Instalar sr.cine</h2><button class="outline close" data-close aria-label="Fechar">×</button></div>
+    <p>Abra o endereço no navegador do celular. No Android, abra o menu do Chrome e escolha <strong>Instalar app</strong> ou <strong>Adicionar à tela inicial</strong>. No iPhone, use <strong>Compartilhar → Adicionar à Tela de Início</strong> no Safari.</p>
+  </dialog>
+</body>
+</html>

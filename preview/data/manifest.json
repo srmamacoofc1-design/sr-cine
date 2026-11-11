@@ -1,0 +1,78 @@
+{
+  "version": "catalog-4",
+  "generatedAt": "2026-11-11T02:59:46.999184+00:00",
+  "counts": {
+    "movie": 19149,
+    "tv": 4760
+  },
+  "genres": {
+    "movie": {
+      "Drama": 8356,
+      "Comédia": 5517,
+      "Ação": 4169,
+      "Suspense": 3732,
+      "Terror": 3215,
+      "Aventura": 2801,
+      "Crime": 2631,
+      "Romance": 2550,
+      "Mistério": 1747,
+      "Animação": 1479,
+      "Fantasia": 1335,
+      "Família": 1250,
+      "Ficção científica": 1242,
+      "Documentário": 1026,
+      "Biografia": 756,
+      "História": 567,
+      "Música": 484,
+      "Filme para TV": 362,
+      "Guerra": 310,
+      "Esporte": 280,
+      "Faroeste": 188,
+      "Musical": 123,
+      "Curta-metragem": 111,
+      "Noir": 7,
+      "Reality": 3,
+      "Notícias": 1
+    },
+    "tv": {
+      "Drama": 2983,
+      "Comédia": 1186,
+      "Crime": 1072,
+      "Mistério": 668,
+      "Ação": 586,
+      "Aventura": 409,
+      "Documentário": 399,
+      "Romance": 373,
+      "Suspense": 360,
+      "Fantasia": 357,
+      "Ficção científica": 243,
+      "Reality": 231,
+      "Terror": 173,
+      "História": 157,
+      "Família": 149,
+      "Biografia": 128,
+      "Novela": 65,
+      "Esporte": 58,
+      "Música": 42,
+      "Guerra": 34,
+      "Game show": 32,
+      "Faroeste": 22,
+      "Política": 16,
+      "Musical": 13,
+      "Infantil": 8,
+      "Curta-metragem": 8,
+      "Talk": 7,
+      "Animação": 5,
+      "Entrevistas": 5,
+      "Notícias": 1
+    }
+  },
+  "classified": {
+    "movie": 18855,
+    "tv": 4295
+  },
+  "files": {
+    "movie": "movie.json",
+    "tv": "tv.json"
+  }
+}
