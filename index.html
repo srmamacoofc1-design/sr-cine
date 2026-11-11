@@ -9,8 +9,8 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./style.css?v=embed-2">
-  <script defer src="./app.js?v=embed-2"></script>
+  <link rel="stylesheet" href="./style.css?v=embed-3">
+  <script defer src="./app.js?v=embed-3"></script>
 </head>
 <body>
   <header class="top">
@@ -64,9 +64,12 @@
     <div class="dialog-head"><p class="eyebrow" id="film-kind"></p><button class="outline close" data-close aria-label="Fechar">×</button></div>
     <h2 id="film-title"></h2>
     <p id="film-meta" class="hero-meta"></p>
-    <p id="film-description"></p>
     <div id="player" hidden></div>
+    <div id="player-controls" class="player-controls" hidden>
+      <button class="outline" id="player-reload">↻ Recarregar player</button>
+    </div>
     <p id="player-status" class="status" role="status"></p>
+    <p id="film-description"></p>
     <div class="actions">
       <button class="primary" id="film-play">▶ &nbsp; Assistir</button>
       <button class="outline" id="film-save">＋ Minha lista</button>

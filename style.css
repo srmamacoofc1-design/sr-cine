@@ -89,6 +89,8 @@ dialog::backdrop { background: #000b; }
 #film-description, #install-dialog p { line-height: 1.55; }
 #player { background: #050505; border-radius: 7px; overflow: hidden; }
 #player iframe, #player video { display: block; width: 100%; aspect-ratio: 16/9; min-height: 200px; border: 0; }
+.player-controls { display: flex; justify-content: flex-end; margin: 10px 0 14px; }
+.player-controls button { font-size: .85rem; min-height: 38px; }
 .credits { margin: 14px 0 0; font-size: .87rem; }
 @media (min-width: 701px) and (max-width: 1100px) {
   .cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }

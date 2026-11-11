@@ -13,6 +13,7 @@ let searchRequest;
 let searchTimer;
 let tmdbEnabled = false;
 let featuredIndex = 0;
+let playerLoadingTimeout;
 
 function loadState(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
@@ -149,7 +150,9 @@ function openFilm(film, autoplay = false) {
 function startFilm() {
   const film = activeFilm;
   if (!film.type) return;
+  clearTimeout(playerLoadingTimeout);
   player.hidden = false;
+  byId("player-controls").hidden = false;
   byId("film-play").hidden = true;
   if (film.type === "mp4") {
     const video = document.createElement("video");
@@ -193,11 +196,22 @@ function startFilm() {
       byId("player-status").textContent = "";
     } else if (film.type === "embedmovies" && /^https:\/\/myembed\.biz\/filme\/(?:tt\d+|\d+)$/.test(film.video)) {
       frame.src = film.video;
-      frame.addEventListener("error", () => {
-        byId("player-status").textContent = "O player está indisponível. Tente carregar novamente.";
-        byId("film-play").hidden = false;
+      byId("player-status").textContent = "Carregando player…";
+      frame.addEventListener("load", () => {
+        if (player.firstElementChild !== frame) return;
+        clearTimeout(playerLoadingTimeout);
+        byId("player-status").textContent = "";
       }, { once: true });
-      byId("player-status").textContent = "";
+      frame.addEventListener("error", () => {
+        if (player.firstElementChild !== frame) return;
+        clearTimeout(playerLoadingTimeout);
+        byId("player-status").textContent = "O player está indisponível. Tente carregar novamente.";
+      }, { once: true });
+      playerLoadingTimeout = setTimeout(() => {
+        if (player.firstElementChild === frame) {
+          byId("player-status").textContent = "O player está demorando. Se precisar, use Recarregar player.";
+        }
+      }, 15000);
     }
     player.replaceChildren(frame);
   }
@@ -206,8 +220,11 @@ function startFilm() {
 
 document.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => button.closest("dialog").close()));
 filmDialog.addEventListener("close", () => {
+  clearTimeout(playerLoadingTimeout);
   player.replaceChildren();
   player.hidden = true;
+  byId("player-controls").hidden = true;
+  byId("player-status").textContent = "";
 });
 document.querySelectorAll("[data-view]").forEach(button => button.addEventListener("click", () => {
   view = button.dataset.view;
@@ -218,6 +235,7 @@ document.querySelectorAll("[data-view]").forEach(button => button.addEventListen
 }));
 query.addEventListener("input", () => { render(); scheduleSearch(); });
 byId("film-play").addEventListener("click", startFilm);
+byId("player-reload").addEventListener("click", startFilm);
 byId("film-save").addEventListener("click", () => toggleSave(activeFilm));
 window.addEventListener("beforeinstallprompt", event => { event.preventDefault(); installPrompt = event; });
 window.addEventListener("appinstalled", () => { byId("install").hidden = true; });
@@ -247,7 +265,7 @@ byId("hero-previous").addEventListener("click", () => { if (catalog.length) step
 byId("hero-next").addEventListener("click", () => { if (catalog.length) stepFeatured(1); });
 
 async function init() {
-  const response = await fetch("./catalog.json?v=embed-2");
+  const response = await fetch("./catalog.json?v=embed-3");
   if (!response.ok) throw new Error("Catálogo indisponível");
   ({ films: catalog, tmdbEnabled } = await response.json());
   byId("tmdb-credit").hidden = !tmdbEnabled;
