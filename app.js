@@ -12,6 +12,7 @@ let installPrompt;
 let searchRequest;
 let searchTimer;
 let tmdbEnabled = false;
+let featuredIndex = 0;
 
 function loadState(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
@@ -22,7 +23,7 @@ function writeState(key, value) {
 const saved = new Set(loadState("sr-cine:lista", []));
 const progress = loadState("sr-cine:progresso", {});
 const normalize = value => value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
-const metadata = film => [film.year, film.genre, film.duration].filter(Boolean).join("  ·  ");
+const metadata = film => [film.rating ? `★ ${film.rating.toFixed(1)}` : "", film.year, film.genre, film.duration].filter(Boolean).join("  ·  ");
 
 function saveLabel(film) {
   return saved.has(film.id) ? "Remover da minha lista" : "Adicionar à minha lista";
@@ -49,7 +50,7 @@ function createCard(film) {
   const open = document.createElement("button");
   open.type = "button";
   open.className = "open";
-  open.setAttribute("aria-label", `Ver detalhes de ${film.title}`);
+  open.setAttribute("aria-label", `Assistir ${film.title}`);
   const cover = document.createElement("span");
   cover.className = "cover";
   const image = document.createElement("img");
@@ -66,7 +67,7 @@ function createCard(film) {
   meta.textContent = metadata(film);
   details.append(title, meta);
   open.append(cover, details);
-  open.addEventListener("click", () => openFilm(film));
+  open.addEventListener("click", () => openFilm(film, Boolean(film.type)));
   article.append(open);
   if (film.type) {
     const favorite = document.createElement("button");
@@ -86,19 +87,19 @@ function createCard(film) {
 
 function render() {
   byId("hero").hidden = view === "saved";
-  byId("library-title").textContent = view === "saved" ? "Minha lista" : "Seleção de filmes";
+  byId("library-title").textContent = view === "saved" ? "Minha lista" : "Filmes em destaque";
   document.querySelectorAll("[data-view]").forEach(button => button.setAttribute("aria-pressed", view === button.dataset.view));
   document.querySelectorAll("[data-genre]").forEach(button => button.setAttribute("aria-pressed", genre === button.dataset.genre));
   const term = normalize(query.value.trim());
   const films = catalog.filter(film =>
     (view === "home" || saved.has(film.id)) &&
-    (genre === "Todos" || genre === film.genre) &&
-    normalize(`${film.title} ${film.genre}`).includes(term)
+    (genre === "Todos" || (genre === "Lançamentos" && Number(film.year) >= 2025) || (genre === "Mais bem avaliados" && film.rating >= 8)) &&
+    normalize([film.title, film.originalTitle, film.genre].filter(Boolean).join(" ")).includes(term)
   );
   byId("cards").replaceChildren(...films.map(createCard));
-  byId("status").textContent = films.length ? "" : view === "saved" && !saved.size
+  byId("status").textContent = films.length ? `${films.length} filmes` : view === "saved" && !saved.size
     ? "Sua lista está vazia. Use o botão + para salvar um filme."
-    : "Nenhum filme encontrado na seleção.";
+    : "Nenhum filme encontrado. Tente outro título.";
 }
 
 function scheduleSearch() {
@@ -127,7 +128,7 @@ function scheduleSearch() {
 
 function openFilm(film, autoplay = false) {
   activeFilm = film;
-  byId("film-kind").textContent = film.type ? "SELEÇÃO SR.CINE" : "CATÁLOGO TMDB";
+  byId("film-kind").textContent = film.type ? "SR.CINE" : "CATÁLOGO TMDB";
   byId("film-title").textContent = film.title;
   byId("film-meta").textContent = metadata(film);
   byId("film-description").textContent = film.description || "Sinopse indisponível.";
@@ -140,7 +141,7 @@ function openFilm(film, autoplay = false) {
   const source = byId("source");
   source.href = film.project ? `https://studio.blender.org/projects/${film.project}/` : film.source;
   source.hidden = !film.project && !film.source;
-  source.textContent = film.project ? "© Blender Foundation · Ver créditos e licença" : "Ver no TMDB";
+  source.textContent = film.type === "embedmovies" ? "Player do EmbedMovies" : film.project ? "© Blender Foundation · Ver créditos e licença" : "Ver no TMDB";
   filmDialog.showModal();
   if (autoplay) startFilm();
 }
@@ -190,6 +191,13 @@ function startFilm() {
     } else if (film.type === "bunny") {
       frame.src = `https://player.mediadelivery.net/embed/${film.video}?autoplay=true`;
       byId("player-status").textContent = "";
+    } else if (film.type === "embedmovies" && /^https:\/\/myembed\.biz\/filme\/(?:tt\d+|\d+)$/.test(film.video)) {
+      frame.src = film.video;
+      frame.addEventListener("error", () => {
+        byId("player-status").textContent = "O player está indisponível. Tente carregar novamente.";
+        byId("film-play").hidden = false;
+      }, { once: true });
+      byId("player-status").textContent = "";
     }
     player.replaceChildren(frame);
   }
@@ -222,19 +230,32 @@ byId("install").addEventListener("click", async () => {
 });
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(() => {});
 
-async function init() {
-  const response = await fetch("./catalog.json");
-  if (!response.ok) throw new Error("Catálogo indisponível");
-  ({ films: catalog, tmdbEnabled } = await response.json());
-  byId("tmdb-credit").hidden = !tmdbEnabled;
-  const [featured] = catalog;
-  byId("hero-art").src = `./art/${featured.id}.webp`;
+function showFeatured() {
+  const featured = catalog[featuredIndex];
+  byId("hero-art").src = featured.backdrop || featured.poster || `./art/${featured.id}.webp`;
   byId("hero-title").textContent = featured.title;
   byId("hero-meta").textContent = metadata(featured);
   byId("hero-description").textContent = featured.description;
-  byId("hero-play").addEventListener("click", () => openFilm(featured, true));
-  byId("hero-info").addEventListener("click", () => openFilm(featured));
-  for (const label of ["Todos", ...new Set(catalog.map(film => film.genre))]) {
+  byId("hero-position").textContent = `${featuredIndex + 1} / ${Math.min(catalog.length, 5)}`;
+}
+
+function stepFeatured(direction) {
+  featuredIndex = (featuredIndex + direction + Math.min(catalog.length, 5)) % Math.min(catalog.length, 5);
+  showFeatured();
+}
+byId("hero-previous").addEventListener("click", () => { if (catalog.length) stepFeatured(-1); });
+byId("hero-next").addEventListener("click", () => { if (catalog.length) stepFeatured(1); });
+
+async function init() {
+  const response = await fetch("./catalog.json?v=embed-2");
+  if (!response.ok) throw new Error("Catálogo indisponível");
+  ({ films: catalog, tmdbEnabled } = await response.json());
+  byId("tmdb-credit").hidden = !tmdbEnabled;
+  if (!catalog.length) throw new Error("Catálogo vazio");
+  showFeatured();
+  byId("hero-play").addEventListener("click", () => openFilm(catalog[featuredIndex], true));
+  byId("hero-info").addEventListener("click", () => openFilm(catalog[featuredIndex]));
+  for (const label of ["Todos", "Lançamentos", "Mais bem avaliados"]) {
     const button = document.createElement("button");
     button.className = "chip";
     button.textContent = label;

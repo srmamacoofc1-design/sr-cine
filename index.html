@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111012">
-  <meta name="description" content="Encontre filmes e assista à seleção do sr.cine.">
+  <meta name="description" content="Os filmes em destaque em um só lugar. Explore o catálogo do sr.cine e dê o próximo play.">
   <title>sr.cine — Filmes</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./style.css">
-  <script defer src="./app.js"></script>
+  <link rel="stylesheet" href="./style.css?v=embed-2">
+  <script defer src="./app.js?v=embed-2"></script>
 </head>
 <body>
   <header class="top">
@@ -23,10 +23,10 @@
   </header>
   <main>
     <section id="hero" class="hero" aria-label="Filme em destaque">
-      <img class="hero-art" id="hero-art" src="./art/charge.webp" alt="">
+      <img class="hero-art" id="hero-art" alt="">
       <div class="hero-copy">
         <p class="eyebrow"><span></span> EM DESTAQUE</p>
-        <h1 id="hero-title">CHARGE</h1>
+        <h1 id="hero-title">Seu próximo filme.</h1>
         <p class="hero-meta" id="hero-meta"></p>
         <p class="hero-description" id="hero-description"></p>
         <div class="actions">
@@ -34,13 +34,18 @@
           <button class="outline" id="hero-info">Detalhes</button>
         </div>
       </div>
+      <div class="hero-pagination" aria-label="Trocar filme em destaque">
+        <button id="hero-previous" class="outline" aria-label="Destaque anterior">←</button>
+        <span id="hero-position"></span>
+        <button id="hero-next" class="outline" aria-label="Próximo destaque">→</button>
+      </div>
     </section>
     <section id="library" class="library">
       <div class="section-head">
-        <div><p class="eyebrow">SR.CINE</p><h2 id="library-title">Seleção de filmes</h2></div>
-        <label class="search"><span aria-hidden="true">⌕</span><input id="query" type="search" placeholder="Buscar título ou gênero" aria-label="Buscar título ou gênero" maxlength="100"></label>
+        <div><p class="eyebrow">ESCOLHA SEU PRÓXIMO PLAY</p><h2 id="library-title">Filmes em destaque</h2></div>
+        <label class="search"><span aria-hidden="true">⌕</span><input id="query" type="search" placeholder="Qual filme você quer ver?" aria-label="Buscar filme" maxlength="100"></label>
       </div>
-      <div id="filters" class="filters" aria-label="Filtrar por gênero"></div>
+      <div id="filters" class="filters" aria-label="Filtrar filmes"></div>
       <p id="status" class="status" role="status"></p>
       <div id="cards" class="cards"></div>
       <section id="discovery" hidden>
@@ -52,7 +57,7 @@
   </main>
   <footer>
     <span class="logo">sr<span>.</span>cine</span>
-    <p>Seleção inicial de filmes abertos do <a href="https://studio.blender.org/films/" target="_blank" rel="noopener">Blender Studio</a>.</p>
+    <p>Catálogo e reprodução via <a href="https://embedmovies.org/" target="_blank" rel="noopener">EmbedMovies</a>. Imagens e informações do TMDB.</p>
     <p id="tmdb-credit" hidden><a href="https://www.themoviedb.org" target="_blank" rel="noopener"><img src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_short-5105e5e6382a29fdb2fafc211ca1557e926c0a3733f4356fd358e4a9cbdec1a5.svg" width="72" alt="TMDB"></a><br>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
   </footer>
   <dialog id="film-dialog" aria-labelledby="film-title">

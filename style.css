@@ -35,14 +35,17 @@ nav button[aria-pressed="true"] { color: #fff; box-shadow: inset 0 -2px var(--ac
 }
 .hero-art { position: absolute; z-index: -2; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 62% center; }
 .hero::before { position: absolute; z-index: -1; inset: 0; content: ""; background: linear-gradient(0deg, #111012 1%, transparent 48%), linear-gradient(90deg, #111012 3%, #161012e8 28%, #11101220 75%); }
-.hero-copy { max-width: 590px; }
+.hero-copy { max-width: 650px; padding-right: 15px; }
+.hero-pagination { position: absolute; bottom: 32px; right: var(--edge); display: flex; align-items: center; gap: 14px; }
+.hero-pagination .outline { min-width: 44px; }
+#hero-position { color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; }
 .eyebrow { font-size: .74rem; font-weight: 700; letter-spacing: .20em; color: var(--accent); margin: 0 0 14px; }
 .eyebrow span { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: currentColor; margin-right: 6px; }
 h1, h2, p { margin-top: 0; }
-h1 { font: clamp(3rem, 10vw, 8rem)/.9 "Archivo Black", sans-serif; letter-spacing: -.09em; margin-bottom: 16px; }
+h1 { font: clamp(2.2rem, 4.8vw, 4.8rem)/1.03 "Archivo Black", sans-serif; letter-spacing: -.06em; margin-bottom: 16px; overflow-wrap: anywhere; }
 h2 { margin-bottom: 12px; font-size: clamp(1.55rem, 3vw, 2.25rem); line-height: 1.1; letter-spacing: -.055em; }
 .hero-meta, .status, .credits, footer p { color: var(--muted); }
-.hero-description { max-width: 420px; line-height: 1.5; }
+.hero-description { max-width: 500px; line-height: 1.5; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .primary, .outline, .chip {
   min-height: 43px; border-radius: 7px; padding: 9px 16px; font-weight: 700;
@@ -61,15 +64,15 @@ h2 { margin-bottom: 12px; font-size: clamp(1.55rem, 3vw, 2.25rem); line-height: 
 .chip[aria-pressed="true"] { color: #fff; background: #47261f; border-color: #a64c35; }
 .status { margin: 13px 0; font-size: .9rem; }
 .status:empty { margin-top: 0; }
-.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.cards { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; }
 .card { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 11px; background: #1d1a1d; }
 .card button.open { width: 100%; display: block; text-align: left; background: transparent; border: 0; padding: 0; }
 .card button.open:focus-visible { outline-offset: -3px; }
-.cover { display: block; aspect-ratio: 16/9; background: radial-gradient(ellipse at top right, #723221, #1d1721 68%); overflow: hidden; }
+.cover { display: block; aspect-ratio: 2/3; background: radial-gradient(ellipse at top right, #723221, #1d1721 68%); overflow: hidden; }
 .cover img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 180ms ease; }
 .card:hover .cover img { transform: scale(1.035); }
 .card-copy { display: block; padding: 13px; }
-.card-copy strong { display: block; overflow-wrap: anywhere; }
+.card-copy strong { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; min-height: 2.6em; font-size: .92rem; line-height: 1.3; }
 .card-copy small { display: block; color: var(--muted); margin-top: 4px; }
 .save { position: absolute; right: 8px; top: 8px; border-radius: 50%; width: 37px; height: 37px; padding: 0; background: #151115e8; }
 .save[aria-pressed="true"] { color: var(--accent); }
@@ -87,11 +90,15 @@ dialog::backdrop { background: #000b; }
 #player { background: #050505; border-radius: 7px; overflow: hidden; }
 #player iframe, #player video { display: block; width: 100%; aspect-ratio: 16/9; min-height: 200px; border: 0; }
 .credits { margin: 14px 0 0; font-size: .87rem; }
+@media (min-width: 701px) and (max-width: 1100px) {
+  .cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
 @media (max-width: 700px) {
   .top { gap: 13px; min-height: 60px; }
   .top nav { gap: 8px; font-size: .82rem; }
   .install { font-size: .76rem; padding: 7px; min-height: 35px; }
-  .hero { min-height: 420px; padding-bottom: 42px; }
+  .hero { min-height: 500px; padding-bottom: 86px; }
+  .hero-pagination { bottom: 23px; }
   .hero::before { background: linear-gradient(0deg, #111012 3%, #11101299 48%, #1110121a 94%); }
   .section-head { align-items: stretch; flex-direction: column; margin-bottom: 12px; }
   .search input { width: 100%; }
