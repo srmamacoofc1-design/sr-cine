@@ -1,0 +1,72 @@
+{
+  "films": [
+    {
+      "id": "charge",
+      "title": "CHARGE",
+      "year": "2022",
+      "genre": "Ficção científica",
+      "duration": "4 min",
+      "description": "Num futuro sem energia, um homem invade uma fábrica em busca de uma bateria. As máquinas estão à espera.",
+      "type": "youtube",
+      "video": "UXqq0ZvbOnk",
+      "project": "charge"
+    },
+    {
+      "id": "spring",
+      "title": "Spring",
+      "year": "2019",
+      "genre": "Fantasia",
+      "duration": "8 min",
+      "description": "Uma pastora e seu cachorro enfrentam antigos espíritos para que a primavera volte ao vale.",
+      "type": "youtube",
+      "video": "WhWc3b3KhnY",
+      "project": "spring"
+    },
+    {
+      "id": "sprite-fright",
+      "title": "Sprite Fright",
+      "year": "2021",
+      "genre": "Terror",
+      "duration": "10 min",
+      "description": "Um grupo de adolescentes descobre que as pequenas criaturas da floresta têm suas próprias regras.",
+      "type": "youtube",
+      "video": "_cMxraX_5RE",
+      "project": "sprite-fright"
+    },
+    {
+      "id": "tears-of-steel",
+      "title": "Tears of Steel",
+      "year": "2012",
+      "genre": "Ficção científica",
+      "duration": "12 min",
+      "description": "Um grupo se reúne nas ruínas de Amsterdã para tentar impedir que robôs dominem a cidade.",
+      "type": "youtube",
+      "video": "R6MlUcmOul8",
+      "project": "tears-of-steel"
+    },
+    {
+      "id": "sintel",
+      "title": "Sintel",
+      "year": "2010",
+      "genre": "Fantasia",
+      "duration": "15 min",
+      "description": "Uma jovem aventureira atravessa terras distantes em busca do pequeno dragão que resgatou.",
+      "type": "youtube",
+      "video": "eRsGyueVLvQ",
+      "project": "sintel"
+    },
+    {
+      "id": "bunny",
+      "title": "Big Buck Bunny",
+      "year": "2008",
+      "genre": "Comédia",
+      "duration": "10 min",
+      "description": "Um coelho de coração enorme enfrenta três roedores que resolveram perturbar sua paz.",
+      "type": "mp4",
+      "video": "https://media.w3.org/2010/05/bunny/movie.mp4",
+      "imageId": "aqz-KE-bpKQ",
+      "project": "big-buck-bunny"
+    }
+  ],
+  "tmdbEnabled": false
+}

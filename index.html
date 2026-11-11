@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111012">
+  <meta name="description" content="Encontre filmes e assista à seleção do sr.cine.">
+  <title>sr.cine — Filmes</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon-192.png">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="stylesheet" href="./style.css">
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <a class="logo" href="./" aria-label="sr.cine, início">sr<span>.</span>cine</a>
+    <nav aria-label="Menu">
+      <button data-view="home" aria-pressed="true">Início</button>
+      <button data-view="saved" aria-pressed="false">Minha lista</button>
+    </nav>
+    <button class="outline install" id="install">Instalar app</button>
+  </header>
+  <main>
+    <section id="hero" class="hero" aria-label="Filme em destaque">
+      <img class="hero-art" id="hero-art" src="./art/charge.webp" alt="">
+      <div class="hero-copy">
+        <p class="eyebrow"><span></span> EM DESTAQUE</p>
+        <h1 id="hero-title">CHARGE</h1>
+        <p class="hero-meta" id="hero-meta"></p>
+        <p class="hero-description" id="hero-description"></p>
+        <div class="actions">
+          <button class="primary" id="hero-play">▶ &nbsp; Assistir agora</button>
+          <button class="outline" id="hero-info">Detalhes</button>
+        </div>
+      </div>
+    </section>
+    <section id="library" class="library">
+      <div class="section-head">
+        <div><p class="eyebrow">SR.CINE</p><h2 id="library-title">Seleção de filmes</h2></div>
+        <label class="search"><span aria-hidden="true">⌕</span><input id="query" type="search" placeholder="Buscar título ou gênero" aria-label="Buscar título ou gênero" maxlength="100"></label>
+      </div>
+      <div id="filters" class="filters" aria-label="Filtrar por gênero"></div>
+      <p id="status" class="status" role="status"></p>
+      <div id="cards" class="cards"></div>
+      <section id="discovery" hidden>
+        <h2>Descobrir no TMDB</h2>
+        <p>Resultados de catálogo. A opção de assistir aparece nos filmes da seleção.</p>
+        <div id="results" class="cards"></div>
+      </section>
+    </section>
+  </main>
+  <footer>
+    <span class="logo">sr<span>.</span>cine</span>
+    <p>Seleção inicial de filmes abertos do <a href="https://studio.blender.org/films/" target="_blank" rel="noopener">Blender Studio</a>.</p>
+    <p id="tmdb-credit" hidden><a href="https://www.themoviedb.org" target="_blank" rel="noopener"><img src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_short-5105e5e6382a29fdb2fafc211ca1557e926c0a3733f4356fd358e4a9cbdec1a5.svg" width="72" alt="TMDB"></a><br>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+  </footer>
+  <dialog id="film-dialog" aria-labelledby="film-title">
+    <div class="dialog-head"><p class="eyebrow" id="film-kind"></p><button class="outline close" data-close aria-label="Fechar">×</button></div>
+    <h2 id="film-title"></h2>
+    <p id="film-meta" class="hero-meta"></p>
+    <p id="film-description"></p>
+    <div id="player" hidden></div>
+    <p id="player-status" class="status" role="status"></p>
+    <div class="actions">
+      <button class="primary" id="film-play">▶ &nbsp; Assistir</button>
+      <button class="outline" id="film-save">＋ Minha lista</button>
+    </div>
+    <p class="credits"><a id="source" target="_blank" rel="noopener"></a></p>
+  </dialog>
+  <dialog id="install-dialog" aria-labelledby="install-title">
+    <div class="dialog-head"><h2 id="install-title">Instalar sr.cine</h2><button class="outline close" data-close aria-label="Fechar">×</button></div>
+    <p>Abra o endereço no navegador do celular. No Android, abra o menu do Chrome e escolha <strong>Instalar app</strong> ou <strong>Adicionar à tela inicial</strong>. No iPhone, use <strong>Compartilhar → Adicionar à Tela de Início</strong> no Safari.</p>
+  </dialog>
+</body>
+</html>
