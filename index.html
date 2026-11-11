@@ -4,19 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111012">
-  <meta name="description" content="Os filmes em destaque em um só lugar. Explore o catálogo do sr.cine e dê o próximo play.">
-  <title>sr.cine — Filmes</title>
+  <meta name="description" content="Encontre filmes e séries de todas as épocas. Explore o catálogo por gênero e descubra seu próximo play.">
+  <title>sr.cine — Filmes e séries</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-192.png">
-  <link rel="stylesheet" href="./style.css?v=embed-3">
-  <script defer src="./app.js?v=embed-3"></script>
+  <link rel="stylesheet" href="./style.css?v=catalog-4">
+  <script defer src="./app.js?v=catalog-4"></script>
 </head>
 <body>
   <header class="top">
     <a class="logo" href="./" aria-label="sr.cine, início">sr<span>.</span>cine</a>
     <nav aria-label="Menu">
-      <button data-view="home" aria-pressed="true">Início</button>
+      <button data-view="movie" aria-pressed="true">Filmes</button>
+      <button data-view="tv" aria-pressed="false">Séries</button>
       <button data-view="saved" aria-pressed="false">Minha lista</button>
     </nav>
     <button class="outline install" id="install">Instalar app</button>
@@ -42,23 +43,37 @@
     </section>
     <section id="library" class="library">
       <div class="section-head">
-        <div><p class="eyebrow">ESCOLHA SEU PRÓXIMO PLAY</p><h2 id="library-title">Filmes em destaque</h2></div>
-        <label class="search"><span aria-hidden="true">⌕</span><input id="query" type="search" placeholder="Qual filme você quer ver?" aria-label="Buscar filme" maxlength="100"></label>
+        <div><p class="eyebrow" id="catalog-total">ESCOLHA SEU PRÓXIMO PLAY</p><h2 id="library-title">Filmes</h2></div>
+        <label class="search"><span aria-hidden="true">⌕</span><input id="query" type="search" placeholder="Buscar por nome em português ou original" aria-label="Buscar no catálogo" maxlength="100"></label>
       </div>
-      <div id="filters" class="filters" aria-label="Filtrar filmes"></div>
-      <p id="status" class="status" role="status"></p>
-      <div id="cards" class="cards"></div>
-      <section id="discovery" hidden>
-        <h2>Descobrir no TMDB</h2>
-        <p>Resultados de catálogo. A opção de assistir aparece nos filmes da seleção.</p>
-        <div id="results" class="cards"></div>
-      </section>
+      <div class="catalog-filters">
+        <label>Categoria<select id="category"><option value="">Todas as categorias</option></select></label>
+        <label>Época<select id="period">
+          <option value="">Todas as épocas</option>
+          <option value="2020">2020 em diante</option>
+          <option value="2010">2010 a 2019</option>
+          <option value="2000">2000 a 2009</option>
+          <option value="1990">1990 a 1999</option>
+          <option value="1980">1980 a 1989</option>
+          <option value="classic">Antes de 1980</option>
+        </select></label>
+        <label>Ordenar<select id="sort">
+          <option value="popular">Mais populares</option>
+          <option value="newest">Mais recentes</option>
+          <option value="oldest">Mais antigos</option>
+          <option value="rating">Melhor avaliação</option>
+          <option value="title">Título A–Z</option>
+        </select></label>
+      </div>
+      <p id="status" class="status" role="status">Carregando catálogo…</p>
+      <nav id="pagination-top" class="pagination" aria-label="Paginação no início"></nav>
+      <div id="cards" class="cards" aria-live="polite"></div>
+      <nav id="pagination-bottom" class="pagination" aria-label="Paginação no final"></nav>
     </section>
   </main>
   <footer>
     <span class="logo">sr<span>.</span>cine</span>
-    <p>Catálogo e reprodução via <a href="https://embedmovies.org/" target="_blank" rel="noopener">EmbedMovies</a>. Imagens e informações do TMDB.</p>
-    <p id="tmdb-credit" hidden><a href="https://www.themoviedb.org" target="_blank" rel="noopener"><img src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_short-5105e5e6382a29fdb2fafc211ca1557e926c0a3733f4356fd358e4a9cbdec1a5.svg" width="72" alt="TMDB"></a><br>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+    <p>Catálogo e reprodução via <a href="https://embedmovies.org/" target="_blank" rel="noopener">EmbedMovies</a>. Imagens e metadados do TMDB e do <a href="https://www.stremio.com/" target="_blank" rel="noopener">Cinemeta</a>.</p>
   </footer>
   <dialog id="film-dialog" aria-labelledby="film-title">
     <div class="dialog-head"><p class="eyebrow" id="film-kind"></p><button class="outline close" data-close aria-label="Fechar">×</button></div>
